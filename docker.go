@@ -27,21 +27,31 @@ func NewBuild(code, lang string) string {
 	err := writeCodeToFile(code, lang)
 
 	if err != nil {
-		panic(err)
+		return fmt.Sprintf("Error: %s", err)
 	}
 
 	cli, err := client.NewEnvClient()
 	if err != nil {
-		panic(err)
+		return fmt.Sprintf("Error: %s", err)
 	}
 
-	buildImage(cli, id, lang)
-	x := buildContainer(cli, id)
+	err = buildImage(cli, id, lang)
+	if err != nil {
+		return fmt.Sprintf("Image build error: %s", err)
+	}
+	x, err := buildContainer(cli, id)
+
+	if err != nil {
+		return "Build error"
+	}
 
 	time.Sleep(5 * time.Second)
 
-	y := getLogs(x, cli)
-	fmt.Println(y)
+	y, err := getLogs(x, cli)
+
+	if err != nil {
+		return "Error retrieving logs"
+	}
 
 	cleanup(cli, id)
 
@@ -49,19 +59,23 @@ func NewBuild(code, lang string) string {
 
 }
 
-func buildImage(cli *client.Client, id, lang string) {
+func buildImage(cli *client.Client, id, lang string) error {
 
 	config := types.ImageBuildOptions{Tags: []string{id}}
-	createBuildContext(lang)
+	err := createBuildContext(lang)
+	if err != nil {
+		return err
+	}
+
 	buildContext, err := os.Open(fmt.Sprintf("/tmp/code_runner/%s.tar", lang))
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer buildContext.Close()
 
 	br, err := cli.ImageBuild(context.Background(), buildContext, config)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer br.Body.Close()
 
@@ -70,12 +84,14 @@ func buildImage(cli *client.Client, id, lang string) {
 	s := buf.String()
 	fmt.Println(s) //do not remove
 
+	return nil
+
 }
 
-func createBuildContext(lang string) {
+func createBuildContext(lang string) error {
 	file, err := os.Create(fmt.Sprintf("/tmp/code_runner/%s.tar", lang))
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	gzipWriter := gzip.NewWriter(file)
@@ -92,19 +108,21 @@ func createBuildContext(lang string) {
 		a, err := ioutil.ReadFile("/tmp/code_runner/" + k)
 		v = a
 		if err != nil {
-			panic(err)
+			return err
 		}
 		hdr := &tar.Header{Name: k, Mode: 0600, Size: int64(len(v))}
 
 		if err := tw.WriteHeader(hdr); err != nil {
-			panic(err)
+			return err
 		}
 
 		if _, err := tw.Write([]byte(v)); err != nil {
-			panic(err)
+			return err
 		}
 
 	}
+
+	return nil
 
 }
 
@@ -115,11 +133,13 @@ func cleanup(cli *client.Client, id string) error {
 	err := cli.ContainerRemove(ctx, id, config)
 
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 
 	_, err = cli.ImageRemove(ctx, id, types.ImageRemoveOptions{Force: true})
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 
@@ -143,7 +163,7 @@ func writeCodeToFile(code, lang string) error {
 	return nil
 }
 
-func buildContainer(cli *client.Client, id string) string {
+func buildContainer(cli *client.Client, id string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -153,16 +173,16 @@ func buildContainer(cli *client.Client, id string) string {
 
 	c, err := cli.ContainerCreate(ctx, &config, &hostconfig, &netconfig, id)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	if err := cli.ContainerStart(ctx, c.ID, types.ContainerStartOptions{}); err != nil {
-		panic(err)
+		return "", err
 	}
 
-	return c.ID
+	return c.ID, nil
 }
 
-func getLogs(id string, cli *client.Client) string {
+func getLogs(id string, cli *client.Client) (string, error) {
 	var b strings.Builder
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -170,13 +190,13 @@ func getLogs(id string, cli *client.Client) string {
 
 	reader, err := cli.ContainerLogs(ctx, id, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
-		fmt.Println(err)
+		return "", err
 	}
 
 	_, err = io.Copy(&b, reader)
 	if err != nil && err != io.EOF {
-		fmt.Println(err)
+		return "", err
 	}
 
-	return b.String()
+	return b.String(), nil
 }
