@@ -51,7 +51,6 @@ func pollQueue() {
 			fmt.Println("ERROR LINE 53", err)
 		}
 		job, _ := decodeJob(item)
-		fmt.Println(job)
 		response := NewBuild(job.Code, job.Language)
 
 		ResponseQueue.Enqueue(response)
@@ -70,7 +69,6 @@ type Job struct {
 func decodeJob(work string) (Job, error) {
 	var job Job
 
-	fmt.Println(work)
 	err := json.Unmarshal([]byte(work), &job)
 
 	if err != nil {

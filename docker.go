@@ -73,7 +73,7 @@ func buildImage(cli *client.Client, id, lang string) {
 }
 
 func createBuildContext(lang string) {
-	file, err := os.Create(fmt.Sprintf("/tmp/code_runner/tar/%s.tar", lang))
+	file, err := os.Create(fmt.Sprintf("/tmp/code_runner/%s.tar", lang))
 	if err != nil {
 		panic(err)
 	}
@@ -85,7 +85,7 @@ func createBuildContext(lang string) {
 	defer tw.Close()
 
 	dkfile := fmt.Sprintf("Dockerfile-%s", lang)
-	copyFile("./dockerfiles/"+dkfile, "/tmp/code_runner/"+dkfile)
+	err = copyFile("/tmp/code_runner/Dockerfile", "./dockerfiles/"+dkfile)
 
 	files := map[string][]byte{"Dockerfile": nil, "main.go": nil}
 	for k, v := range files {
@@ -128,7 +128,7 @@ func cleanup(cli *client.Client, id string) error {
 
 func writeCodeToFile(code, lang string) error {
 	path := fmt.Sprintf("/tmp/code_runner/main.%s", lang)
-	os.Remove(path)
+	os.Mkdir("/tmp/code_runner", 0777)
 	os.Create(path)
 	f, err := os.OpenFile(path, os.O_RDWR, 0777)
 
