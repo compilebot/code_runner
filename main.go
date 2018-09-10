@@ -51,7 +51,7 @@ func pollQueue() {
 			fmt.Println("ERROR LINE 53", err)
 		}
 		job, _ := decodeJob(item)
-		fmt.Println(job.Code, job.Code)
+		fmt.Println(job)
 		response := NewBuild(job.Code, job.Language)
 
 		ResponseQueue.Enqueue(response)
@@ -61,19 +61,20 @@ func pollQueue() {
 
 // Job is a JSON structure representing information about the job.
 type Job struct {
-	ChannelID string `json:"channelID"`
-	Code      string `json:"code"`
-	Language  string `json:"language"`
-	RequestID string `json:"requestID"`
+	ChannelID string
+	Code      string
+	Language  string
+	RequestID string
 }
 
 func decodeJob(work string) (Job, error) {
 	var job Job
 
+	fmt.Println(work)
 	err := json.Unmarshal([]byte(work), &job)
 
 	if err != nil {
-
+		fmt.Println(err)
 	}
 
 	return job, err
