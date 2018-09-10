@@ -55,6 +55,10 @@ func NewBuild(code, lang string) string {
 
 	cleanup(cli, id)
 
+	if y == "" {
+		return "No output or container timed out"
+	}
+
 	return y
 
 }
