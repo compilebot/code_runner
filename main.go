@@ -41,21 +41,48 @@ func main() {
 }
 
 func pollQueue() {
-	rate := time.Second / 2
+	rate := time.Second
 	throttle := time.Tick(rate)
-	for newJob, err := JobQueue.PollQueue(); err == nil && newJob; {
+	for {
 		<-throttle
-		item, err := JobQueue.Dequeue()
-		if err != nil {
+		go func() {
+
 			// TODO
-			fmt.Println("ERROR LINE 53", err)
-		}
-		job, _ := decodeJob(item)
-		response := NewBuild(job.Code, job.Language)
+			ready, _ := JobQueue.PollQueue()
 
-		ResponseQueue.Enqueue(response)
+			if !ready {
+				return
+			}
+
+			item, err := JobQueue.Dequeue()
+
+			if err != nil {
+				return
+			}
+
+			job, _ := decodeJob(item)
+			response := NewBuild(job.Code, job.Language)
+
+			res := encodeResponse(response, job)
+
+			ResponseQueue.Enqueue(res)
+
+		}()
 	}
+}
 
+type Response struct {
+	ChannelID string
+	Code      string
+	Language  string
+	RequestID string
+	Response  string
+}
+
+func encodeResponse(response string, job Job) string {
+	jsonJob, _ := json.Marshal(Response{job.ChannelID, job.Code, job.Language, job.RequestID, response})
+
+	return string(jsonJob)
 }
 
 // Job is a JSON structure representing information about the job.
