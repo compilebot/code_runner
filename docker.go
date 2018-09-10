@@ -20,7 +20,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// New is the function to create a new container and run the code passed into it
+// NewBuild is the function to create a new container and run the code passed into it
 func NewBuild(code, lang string) string {
 	rand.Seed(time.Now().Unix())
 	id := generateID(lang)

@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bytes"
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
 	"github.com/gopherpun/redis_queue"
 )
 
@@ -52,32 +50,31 @@ func pollQueue() {
 			// TODO
 			fmt.Println("ERROR LINE 53", err)
 		}
-		job := decodeJob(item)
-		fmt.Println(job.code, job.code)
-		response := NewBuild(job.code, job.language)
+		job, _ := decodeJob(item)
+		fmt.Println(job.Code, job.Code)
+		response := NewBuild(job.Code, job.Language)
 
 		ResponseQueue.Enqueue(response)
 	}
 
 }
 
+// Job is a JSON structure representing information about the job.
 type Job struct {
-	session   *discordgo.Session
-	channelID string
-	code      string
-	language  string
+	ChannelID string `json:"channelID"`
+	Code      string `json:"code"`
+	Language  string `json:"language"`
+	RequestID string `json:"requestID"`
 }
 
-func decodeJob(work string) Job {
-	var jobGob bytes.Buffer
+func decodeJob(work string) (Job, error) {
 	var job Job
-	dec := gob.NewDecoder(&jobGob)
-	err := dec.Decode(&work)
-	if err != nil && err.Error() != "EOF" {
-		fmt.Println("ERR LINE 77", err)
+
+	err := json.Unmarshal([]byte(work), &job)
+
+	if err != nil {
+
 	}
 
-	fmt.Println(work)
-
-	return job
+	return job, err
 }
