@@ -48,7 +48,7 @@ func pollQueue() {
 		go func() {
 
 			// TODO
-			ready, _ := JobQueue.PollQueue()
+			ready, _ := JobQueue.Peek()
 
 			if !ready {
 				return
