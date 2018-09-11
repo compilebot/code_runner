@@ -107,7 +107,7 @@ func createBuildContext(lang string) error {
 	dkfile := fmt.Sprintf("Dockerfile-%s", lang)
 	err = copyFile("/tmp/code_runner/Dockerfile", "./dockerfiles/"+dkfile)
 
-	files := map[string][]byte{"Dockerfile": nil, "main.go": nil}
+	files := map[string][]byte{"Dockerfile": nil, fmt.Sprintf("main." + lang): nil}
 	for k, v := range files {
 		a, err := ioutil.ReadFile("/tmp/code_runner/" + k)
 		v = a
