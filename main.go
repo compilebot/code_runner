@@ -71,6 +71,7 @@ func pollQueue() {
 	}
 }
 
+// Response is a JSON struct represention information about the response.
 type Response struct {
 	ChannelID string
 	Code      string
