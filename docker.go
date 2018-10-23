@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
@@ -27,39 +29,60 @@ func NewBuild(code, lang string) string {
 	err := writeCodeToFile(code, lang)
 
 	if err != nil {
-		return fmt.Sprintf("Error: %s", err)
+		logrus.WithFields(logrus.Fields{
+			"msg":  err,
+			"type": "CreateFile",
+		}).Error()
+		return fmt.Sprintf("CreateFile error. Error ID: %s", id)
 	}
 
 	cli, err := client.NewEnvClient()
 	if err != nil {
-		return fmt.Sprintf("Error: %s", err)
+		logrus.WithFields(logrus.Fields{
+			"msg":  err,
+			"type": "DockerClient",
+		}).Error()
+		return fmt.Sprintf("DockerClient error. Error ID: %s", id)
 	}
 
 	err = buildImage(cli, id, lang)
 	if err != nil {
-		return fmt.Sprintf("Image build error: %s", err)
+		logrus.WithFields(logrus.Fields{
+			"msg":  err,
+			"type": "ImageBuild",
+		}).Error()
+		return fmt.Sprintf("ImageBuild error. Error ID: %s", id)
 	}
 	x, err := buildContainer(cli, id)
 
 	if err != nil {
-		return "Build error"
+		logrus.WithFields(logrus.Fields{
+			"msg":  err,
+			"type": "ContainerBuild",
+		}).Error()
+		return fmt.Sprintf("ContainerBuild error. Error ID: %s", id)
 	}
 
 	time.Sleep(5 * time.Second)
 
-	y, err := getLogs(x, cli)
+	logs, err := getLogs(x, cli)
 
 	if err != nil {
-		return "Error retrieving logs"
+		logrus.WithFields(logrus.Fields{
+			"msg":  err,
+			"type": "GetLog",
+		}).Error()
+		return fmt.Sprintf("GetLog error. Error ID: %s", id)
 	}
 
 	cleanup(cli, id)
 
-	if y == "" {
-		return "No output or container timed out"
+	if logs == "" {
+		// TODO
+		return "No output or container timed out."
 	}
 
-	return y
+	return logs
 
 }
 

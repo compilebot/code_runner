@@ -6,7 +6,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/gopherpun/redis_queue"
+	"github.com/sirupsen/logrus"
 )
 
 // declares env variables
@@ -14,9 +16,19 @@ var (
 	RedisHost     string
 	ResponseQueue *redis_queue.Queue
 	JobQueue      *redis_queue.Queue
+	service       string
 )
 
 func init() {
+	//	logrus.SetFormatter(&logrus.TextFormatter{
+	//		TimestampFormat: "2006-01-02T15:04:05.000",
+	//		FullTimestamp:   true,
+	//	})
+
+	service = "code_runner"
+
+	logrus.SetFormatter(&logrus.JSONFormatter{})
+
 	RedisHost = os.Getenv("REDIS_HOST")
 	ResponseQueueKey := os.Getenv("RESPONSE_QUEUE")
 	JobQueueKey := os.Getenv("JOB_QUEUE")
@@ -36,8 +48,18 @@ func init() {
 }
 
 func main() {
+	logrus.WithFields(logrus.Fields{
+		"msg":     "Application has started.",
+		"service": service,
+	}).Info()
 	pollQueue()
-	select {}
+}
+
+func lambdaRunner(request Job) (events.APIGatewayProxyResponse, error) {
+	response := NewBuild(request.Code, request.Language)
+	res := encodeResponse(response, request)
+
+	return events.APIGatewayProxyResponse{Headers: map[string]string{}, IsBase64Encoded: false, StatusCode: 200, Body: string(res)}, nil
 }
 
 func pollQueue() {
@@ -55,7 +77,6 @@ func pollQueue() {
 			}
 
 			item, err := JobQueue.Dequeue()
-
 			if err != nil {
 				return
 			}
