@@ -13,3 +13,6 @@
 
 # vim
 .*.sw?
+
+# env
+.env
