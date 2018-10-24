@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/gopherpun/redis_queue"
 	"github.com/sirupsen/logrus"
 )
@@ -35,11 +34,21 @@ func init() {
 
 	rq, err := redis_queue.NewQueue(RedisHost, ResponseQueueKey)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"msg":     "Failed to connect to Redis.",
+			"service": service,
+			"err_msg": err,
+		}).Fatal()
 		panic(err)
 	}
 
 	jq, err := redis_queue.NewQueue(RedisHost, JobQueueKey)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"msg":     "Failed to connect to Redis.",
+			"service": service,
+			"err_msg": err,
+		}).Fatal()
 		panic(err)
 	}
 
@@ -53,13 +62,6 @@ func main() {
 		"service": service,
 	}).Info()
 	pollQueue()
-}
-
-func lambdaRunner(request Job) (events.APIGatewayProxyResponse, error) {
-	response := NewBuild(request.Code, request.Language)
-	res := encodeResponse(response, request)
-
-	return events.APIGatewayProxyResponse{Headers: map[string]string{}, IsBase64Encoded: false, StatusCode: 200, Body: string(res)}, nil
 }
 
 func pollQueue() {
