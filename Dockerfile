@@ -1,6 +1,6 @@
 FROM golang:1.11.1-alpine3.8 as build-env
 # All these steps will be cached
-RUN apk update && apk add git
+RUN apk update && apk add git && apk add ca-certificates
 RUN mkdir /code_runner
 WORKDIR /code_runner
 COPY go.mod .
