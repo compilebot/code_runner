@@ -71,7 +71,6 @@ func pollQueue() {
 		<-throttle
 		go func() {
 
-			// TODO
 			ready, _ := JobQueue.Peek()
 
 			if !ready {
